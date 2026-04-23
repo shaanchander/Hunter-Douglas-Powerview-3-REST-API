@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -18,7 +19,7 @@ type positionRequest struct {
 	SelectedShade string `json:"selectedShade"`
 	ShadePct      int    `json:"shadePct"`
 	GapPct        int    `json:"gapPct"`
-	Velocity      *uint8 `json:"velocity,omitempty"`
+	Velocity      *int   `json:"velocity,omitempty"`
 }
 
 type positionResponse struct {
@@ -53,13 +54,19 @@ func NewRouter(cfg Config) *gin.Engine {
 			return
 		}
 
-		velocity := uint8(0)
+		velocity := 0
 		if req.Velocity != nil {
+			if *req.Velocity < 10 || *req.Velocity > 255 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "velocity must be in range [10..255] when provided"})
+				return
+			}
 			velocity = *req.Velocity
 		}
 
 		packet := protocol.EncodeSetPositionPacket(1, req.ShadePct, req.GapPct, velocity)
 		hexPacket := protocol.PacketHexUpper(packet)
+
+		log.Printf("SET_POSITION hex: %s (shade=%d gap=%d velocity=%d)", hexPacket, req.ShadePct, req.GapPct, velocity)
 
 		statusCode, err := pvClient.SendSetPosition(req.SelectedShade, hexPacket)
 		if err != nil {
