@@ -1,0 +1,80 @@
+package api
+
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+
+	"hunter-douglas-powerview-3-rest-api/internal/powerview"
+	"hunter-douglas-powerview-3-rest-api/internal/protocol"
+)
+
+type Config struct {
+	PowerViewHost string
+	APIPort       string
+}
+
+type positionRequest struct {
+	SelectedShade string `json:"selectedShade"`
+	ShadePct      int    `json:"shadePct"`
+	GapPct        int    `json:"gapPct"`
+	Velocity      *uint8 `json:"velocity,omitempty"`
+}
+
+type positionResponse struct {
+	SentHex            string `json:"sentHex"`
+	ShadePct           int    `json:"shadePct"`
+	GapPct             int    `json:"gapPct"`
+	DerivedBlindPct    int    `json:"derivedBlindPct"`
+	UpstreamStatusCode int    `json:"upstreamStatusCode"`
+}
+
+func NewRouter(cfg Config) *gin.Engine {
+	r := gin.Default()
+	pvClient := powerview.NewClient(cfg.PowerViewHost)
+
+	r.POST("/v1/position", func(c *gin.Context) {
+		var req positionRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+			return
+		}
+
+		if req.SelectedShade == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "selectedShade is required"})
+			return
+		}
+		if req.ShadePct < 0 || req.ShadePct > 100 || req.GapPct < 0 || req.GapPct > 100 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "shadePct and gapPct must be in range [0..100]"})
+			return
+		}
+		if req.ShadePct+req.GapPct > 100 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "shadePct + gapPct must be <= 100"})
+			return
+		}
+
+		velocity := uint8(0)
+		if req.Velocity != nil {
+			velocity = *req.Velocity
+		}
+
+		packet := protocol.EncodeSetPositionPacket(1, req.ShadePct, req.GapPct, velocity)
+		hexPacket := protocol.PacketHexUpper(packet)
+
+		statusCode, err := pvClient.SendSetPosition(req.SelectedShade, hexPacket)
+		if err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to send command to PowerView", "details": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, positionResponse{
+			SentHex:            hexPacket,
+			ShadePct:           req.ShadePct,
+			GapPct:             req.GapPct,
+			DerivedBlindPct:    100 - req.ShadePct - req.GapPct,
+			UpstreamStatusCode: statusCode,
+		})
+	})
+
+	return r
+}

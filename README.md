@@ -1,0 +1,1 @@
+(currently assumes the blind has a shade for initial implementation)
