@@ -3,7 +3,11 @@
 TODO
 - Account for slight percentage difference (doesn't add to 100 due to compacted blind taking up space)
 - Handle blinds with no shades
-
+- implement caching for shade types?
+- query shades by int id?
+- make container to host api
+- improve error handling
+- improve response from api
 
 Create a local `config.yaml` by copying the sample file and filling in your values:
 
