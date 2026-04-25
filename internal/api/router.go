@@ -11,8 +11,8 @@ import (
 )
 
 type Config struct {
-	PowerViewHost string
-	APIPort       string
+	PowerViewHost string `yaml:"POWERVIEW_HOST"`
+	APIPort       string `yaml:"API_PORT"`
 }
 
 type positionRequest struct {
