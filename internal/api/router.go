@@ -63,10 +63,22 @@ func NewRouter(cfg Config) *gin.Engine {
 			velocity = *req.Velocity
 		}
 
-		packet := protocol.EncodeSetPositionPacket(1, req.ShadePct, req.GapPct, velocity)
+		shadeType, err := pvClient.GetShadeTypeByBLEName(req.SelectedShade)
+		if err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to resolve shade type from PowerView", "details": err.Error()})
+			return
+		}
+
+		pos2Raw, err := protocol.Pos2RawForShadeType(shadeType)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported shade type", "details": err.Error()})
+			return
+		}
+
+		packet := protocol.EncodeSetPositionPacket(1, req.ShadePct, req.GapPct, velocity, pos2Raw)
 		hexPacket := protocol.PacketHexUpper(packet)
 
-		log.Printf("SET_POSITION hex: %s (shade=%d gap=%d velocity=%d)", hexPacket, req.ShadePct, req.GapPct, velocity)
+		log.Printf("SET_POSITION hex: %s (shade=%d gap=%d velocity=%d type=%d)", hexPacket, req.ShadePct, req.GapPct, velocity, shadeType)
 
 		statusCode, err := pvClient.SendSetPosition(req.SelectedShade, hexPacket)
 		if err != nil {

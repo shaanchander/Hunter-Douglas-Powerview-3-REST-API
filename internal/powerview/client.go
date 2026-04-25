@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -15,6 +16,15 @@ type Client struct {
 	http *http.Client
 }
 
+type Shade struct {
+	ID           int    `json:"id"`
+	Type         int    `json:"type"`
+	Name         string `json:"name"`
+	PTName       string `json:"ptName"`
+	BLEName      string `json:"bleName"`
+	SerialNumber string `json:"serialNumber"`
+}
+
 type execPayload struct {
 	Hex string `json:"hex"`
 }
@@ -24,6 +34,48 @@ func NewClient(host string) *Client {
 		host: strings.TrimRight(host, "/"),
 		http: &http.Client{Timeout: 5 * time.Second},
 	}
+}
+
+func (c *Client) GetHomeShades() ([]Shade, error) {
+	endpoint := fmt.Sprintf("%s/home/shades", c.host)
+
+	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("unexpected status from PowerView /home/shades: %s: %s", resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	var shades []Shade
+	if err := json.NewDecoder(resp.Body).Decode(&shades); err != nil {
+		return nil, err
+	}
+
+	return shades, nil
+}
+
+func (c *Client) GetShadeTypeByBLEName(bleName string) (int, error) {
+	shades, err := c.GetHomeShades()
+	if err != nil {
+		return 0, err
+	}
+
+	for _, shade := range shades {
+		if shade.BLEName == bleName {
+			return shade.Type, nil
+		}
+	}
+
+	return 0, fmt.Errorf("selected shade %q not found by bleName", bleName)
 }
 
 func (c *Client) SendSetPosition(selectedShade string, hexPacket string) (int, error) {
