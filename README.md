@@ -36,6 +36,25 @@ Then start the API with:
 go run ./cmd/api
 ```
 
+## Run With Docker
+
+Build the image:
+
+```bash
+docker build -t powerview-api .
+```
+
+Run it and mount your local config file:
+
+```bash
+docker run --rm \
+	-p 8080:8080 \
+	-v "$(pwd)/config.yaml:/app/config.yaml:ro" \
+	powerview-api
+```
+
+If you changed `API_PORT` in `config.yaml`, update the `-p host:container` mapping to match.
+
 ## API Notes: POST /v1/position
 
 Current API contract uses `selectedShade` + `blindPct`, with `shadePct` only for shade+blind devices.
