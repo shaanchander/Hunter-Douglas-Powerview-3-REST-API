@@ -17,12 +17,17 @@ type Client struct {
 }
 
 type Shade struct {
-	ID           int    `json:"id"`
-	Type         int    `json:"type"`
-	Name         string `json:"name"`
-	PTName       string `json:"ptName"`
-	BLEName      string `json:"bleName"`
-	SerialNumber string `json:"serialNumber"`
+	ID             int    `json:"id"`
+	Type           int    `json:"type"`
+	Name           string `json:"name"`
+	PTName         string `json:"ptName"`
+	BLEName        string `json:"bleName"`
+	SerialNumber   string `json:"serialNumber"`
+	SignalStrength int    `json:"signalStrength"`
+	RoomID         int    `json:"roomId"`
+	BatteryStatus  int    `json:"batteryStatus"`
+	PowerType      int    `json:"powerType"`
+	Capabilities   int    `json:"capabilities"`
 }
 
 type execPayload struct {
