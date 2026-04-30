@@ -19,4 +19,4 @@ COPY --from=builder /out/powerview-api /usr/local/bin/powerview-api
 USER app
 EXPOSE 8080
 
-ENTRYPOINT ["/usr/local/bin/powerview-api"]
+ENTRYPOINT ["/usr/local/bin/powerview-api", "-P", "8080"]
