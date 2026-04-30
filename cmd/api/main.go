@@ -1,20 +1,19 @@
 package main
 
 import (
-	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"os"
 
 	"hunter-douglas-powerview-3-rest-api/internal/api"
-
-	"gopkg.in/yaml.v3"
 )
 
-const configFilePath = "config.yaml"
+const defaultAPIPort = "8080"
+const usageLine = "usage: powerview-api -H <POWERVIEW_HOST> [-P <API_PORT>]"
 
 func main() {
-	cfg, err := loadConfig(configFilePath)
+	cfg, err := loadConfig(os.Args)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -25,25 +24,45 @@ func main() {
 	}
 }
 
-func loadConfig(path string) (api.Config, error) {
-	data, err := os.ReadFile(path)
+func loadConfig(args []string) (api.Config, error) {
+	cfg, err := configFromFlags(args[1:])
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return api.Config{}, fmt.Errorf("missing %s: copy config.sample.yaml to %s and fill in your values", path, path)
-		}
-		return api.Config{}, fmt.Errorf("read config file %q: %w", path, err)
-	}
-
-	var cfg api.Config
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return api.Config{}, fmt.Errorf("parse config file %q: %w", path, err)
+		return api.Config{}, err
 	}
 
 	if cfg.PowerViewHost == "" {
-		return api.Config{}, fmt.Errorf("%s: POWERVIEW_HOST is required", path)
+		cfg.PowerViewHost = os.Getenv("POWERVIEW_HOST")
 	}
 	if cfg.APIPort == "" {
-		cfg.APIPort = "8080"
+		cfg.APIPort = os.Getenv("API_PORT")
+	}
+
+	return normalizeConfig(cfg)
+}
+
+func configFromFlags(args []string) (api.Config, error) {
+	fs := flag.NewFlagSet("powerview-api", flag.ContinueOnError)
+	host := fs.String("H", "", "PowerView hub host URL (required unless POWERVIEW_HOST is set)")
+	port := fs.String("P", "", "API port to listen on")
+	if err := fs.Parse(args); err != nil {
+		return api.Config{}, fmt.Errorf("parse flags: %w; %s", err, usageLine)
+	}
+	if len(fs.Args()) > 0 {
+		return api.Config{}, fmt.Errorf("unexpected args: %v; %s", fs.Args(), usageLine)
+	}
+
+	return api.Config{
+		PowerViewHost: *host,
+		APIPort:       *port,
+	}, nil
+}
+
+func normalizeConfig(cfg api.Config) (api.Config, error) {
+	if cfg.PowerViewHost == "" {
+		return api.Config{}, fmt.Errorf("POWERVIEW_HOST is required (use -H or set POWERVIEW_HOST)")
+	}
+	if cfg.APIPort == "" {
+		cfg.APIPort = defaultAPIPort
 	}
 
 	return cfg, nil

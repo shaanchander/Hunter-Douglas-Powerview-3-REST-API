@@ -15,7 +15,6 @@ RUN addgroup -S app && adduser -S -G app app
 WORKDIR /app
 
 COPY --from=builder /out/powerview-api /usr/local/bin/powerview-api
-COPY config.sample.yaml /app/config.sample.yaml
 
 USER app
 EXPOSE 8080

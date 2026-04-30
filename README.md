@@ -8,33 +8,19 @@ TODO
 - make container to host api
 - improve error handling
 - improve response from api
-- for docker, move from config.yaml to just vars
 
-Create a local `config.yaml` by copying the sample file and filling in your values:
+## Run Locally
 
-```bash
-cp config.sample.yaml config.yaml
-```
-
-Then edit `config.yaml` with your PowerView host and API port.
-
-Start the API with:
+Start the API with flags:
 
 ```bash
-go run ./cmd/api
+go run ./cmd/api -H http://192.168.1.50 -P 8080
 ```
 
-The server reads `config.yaml` from the repository root.
-
-```yaml
-POWERVIEW_HOST: http://192.168.1.50
-API_PORT: "8080"
-```
-
-Then start the API with:
+`-P` is optional and defaults to `8080`:
 
 ```bash
-go run ./cmd/api
+go run ./cmd/api -H http://192.168.1.50
 ```
 
 ## Run With Docker
@@ -45,16 +31,17 @@ Build the image:
 docker build -t powerview-api .
 ```
 
-Run it and mount your local config file:
+Run it with environment variables:
 
 ```bash
 docker run --rm \
 	-p 8080:8080 \
-	-v "$(pwd)/config.yaml:/app/config.yaml:ro" \
+	-e POWERVIEW_HOST=http://192.168.1.50 \
+	-e API_PORT=8080 \
 	powerview-api
 ```
 
-If you changed `API_PORT` in `config.yaml`, update the `-p host:container` mapping to match.
+If you set `API_PORT` to a non-default value, update the `-p host:container` mapping to match.
 
 ## API Notes: POST /v1/position
 
