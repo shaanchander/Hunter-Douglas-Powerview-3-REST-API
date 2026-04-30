@@ -8,6 +8,7 @@ TODO
 - make container to host api
 - improve error handling
 - improve response from api
+- for docker, move from config.yaml to just vars
 
 Create a local `config.yaml` by copying the sample file and filling in your values:
 
