@@ -16,18 +16,26 @@ type Client struct {
 	http *http.Client
 }
 
+type Position struct {
+	Primary   float64 `json:"primary"`
+	Secondary float64 `json:"secondary"`
+	Tilt      float64 `json:"tilt"`
+	Velocity  int     `json:"velocity"`
+}
+
 type Shade struct {
-	ID             int    `json:"id"`
-	Type           int    `json:"type"`
-	Name           string `json:"name"`
-	PTName         string `json:"ptName"`
-	BLEName        string `json:"bleName"`
-	SerialNumber   string `json:"serialNumber"`
-	SignalStrength int    `json:"signalStrength"`
-	RoomID         int    `json:"roomId"`
-	BatteryStatus  int    `json:"batteryStatus"`
-	PowerType      int    `json:"powerType"`
-	Capabilities   int    `json:"capabilities"`
+	ID             int       `json:"id"`
+	Type           int       `json:"type"`
+	Name           string    `json:"name"`
+	PTName         string    `json:"ptName"`
+	BLEName        string    `json:"bleName"`
+	SerialNumber   string    `json:"serialNumber"`
+	SignalStrength int       `json:"signalStrength"`
+	RoomID         int       `json:"roomId"`
+	BatteryStatus  int       `json:"batteryStatus"`
+	PowerType      int       `json:"powerType"`
+	Capabilities   int       `json:"capabilities"`
+	Positions      *Position `json:"positions,omitempty"`
 }
 
 type execPayload struct {
