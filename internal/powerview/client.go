@@ -76,21 +76,6 @@ func (c *Client) GetHomeShades() ([]Shade, error) {
 	return shades, nil
 }
 
-func (c *Client) GetShadeTypeByBLEName(bleName string) (int, error) {
-	shades, err := c.GetHomeShades()
-	if err != nil {
-		return 0, err
-	}
-
-	for _, shade := range shades {
-		if shade.BLEName == bleName {
-			return shade.Type, nil
-		}
-	}
-
-	return 0, fmt.Errorf("selected shade %q not found by bleName", bleName)
-}
-
 func (c *Client) GetShadeByID(id int) (*Shade, error) {
 	endpoint := fmt.Sprintf("%s/home/shades/%d", c.host, id)
 
