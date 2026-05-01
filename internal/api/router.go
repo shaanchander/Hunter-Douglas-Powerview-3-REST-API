@@ -44,36 +44,28 @@ func NewRouter(cfg Config) *gin.Engine {
 		c.JSON(http.StatusOK, shades)
 	})
 
-	r.GET("/v1/shades/:identifier", func(c *gin.Context) {
+	r.GET("/v1/shades/:id", func(c *gin.Context) {
 		shades, err := pvClient.GetHomeShades()
 		if err != nil {
 			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to fetch shades from PowerView", "details": err.Error()})
 			return
 		}
 
-		identifier := c.Param("identifier")
-
-		// Try to parse as int ID first
-		if id, parseErr := strconv.Atoi(identifier); parseErr == nil {
-			for _, shade := range shades {
-				if shade.ID == id {
-					c.JSON(http.StatusOK, shade)
-					return
-				}
-			}
-			c.JSON(http.StatusNotFound, gin.H{"error": "shade not found", "id": id})
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "id must be a valid integer"})
 			return
 		}
 
-		// Fall back to BLE name lookup
 		for _, shade := range shades {
-			if shade.BLEName == identifier {
+			if shade.ID == id {
 				c.JSON(http.StatusOK, shade)
 				return
 			}
 		}
 
-		c.JSON(http.StatusNotFound, gin.H{"error": "shade not found", "identifier": identifier})
+		c.JSON(http.StatusNotFound, gin.H{"error": "shade not found", "id": id})
 	})
 
 	r.POST("/v1/position", func(c *gin.Context) {
