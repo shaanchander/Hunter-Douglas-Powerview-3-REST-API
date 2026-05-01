@@ -17,10 +17,10 @@ type Config struct {
 }
 
 type positionRequest struct {
-	SelectedShade string `json:"selectedShade"`
-	ShadePct      *int   `json:"shadePct,omitempty"`
-	BlindPct      *int   `json:"blindPct"`
-	Velocity      *int   `json:"velocity,omitempty"`
+	ID       int  `json:"id"`
+	ShadePct *int `json:"shadePct,omitempty"`
+	BlindPct *int `json:"blindPct"`
+	Velocity *int `json:"velocity,omitempty"`
 }
 
 type positionResponse struct {
@@ -75,8 +75,8 @@ func NewRouter(cfg Config) *gin.Engine {
 			return
 		}
 
-		if req.SelectedShade == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "selectedShade is required"})
+		if req.ID == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
 			return
 		}
 		if req.BlindPct == nil {
@@ -84,13 +84,13 @@ func NewRouter(cfg Config) *gin.Engine {
 			return
 		}
 
-		shadeType, err := pvClient.GetShadeTypeByBLEName(req.SelectedShade)
+		shade, err := pvClient.GetShadeByID(req.ID)
 		if err != nil {
-			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to resolve shade type from PowerView", "details": err.Error()})
+			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to fetch shade from PowerView", "details": err.Error()})
 			return
 		}
 
-		pos2Raw, err := protocol.Pos2RawForShadeType(shadeType)
+		pos2Raw, err := protocol.Pos2RawForShadeType(shade.Type)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported shade type", "details": err.Error()})
 			return
@@ -111,7 +111,7 @@ func NewRouter(cfg Config) *gin.Engine {
 		responseShadePct := 0
 		useBlindOnlyEncoding := false
 
-		switch shadeType {
+		switch shade.Type {
 		case 9:
 			if req.ShadePct == nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "shadePct is required for shade+blind devices"})
@@ -156,9 +156,9 @@ func NewRouter(cfg Config) *gin.Engine {
 		}
 		hexPacket := protocol.PacketHexUpper(packet)
 
-		log.Printf("SET_POSITION hex: %s (shade=%d blindOpen=%d gap=%d velocity=%d type=%d)", hexPacket, normalizedShadePct, blindOpenPct, normalizedGapPct, velocity, shadeType)
+		log.Printf("SET_POSITION hex: %s (shade=%d blindOpen=%d gap=%d velocity=%d type=%d)", hexPacket, normalizedShadePct, blindOpenPct, normalizedGapPct, velocity, shade.Type)
 
-		statusCode, err := pvClient.SendSetPosition(req.SelectedShade, hexPacket)
+		statusCode, err := pvClient.SendSetPosition(shade.BLEName, hexPacket)
 		if err != nil {
 			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to send command to PowerView", "details": err.Error()})
 			return

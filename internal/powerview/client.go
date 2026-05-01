@@ -91,6 +91,36 @@ func (c *Client) GetShadeTypeByBLEName(bleName string) (int, error) {
 	return 0, fmt.Errorf("selected shade %q not found by bleName", bleName)
 }
 
+func (c *Client) GetShadeByID(id int) (*Shade, error) {
+	endpoint := fmt.Sprintf("%s/home/shades/%d", c.host, id)
+
+	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("shade %d not found", id)
+	}
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("unexpected status from PowerView /home/shades/%d: %s: %s", id, resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	var shade Shade
+	if err := json.NewDecoder(resp.Body).Decode(&shade); err != nil {
+		return nil, err
+	}
+
+	return &shade, nil
+}
+
 func (c *Client) SendSetPosition(selectedShade string, hexPacket string) (int, error) {
 	endpoint := fmt.Sprintf("%s/home/shades/exec?shades=%s", c.host, url.QueryEscape(selectedShade))
 
