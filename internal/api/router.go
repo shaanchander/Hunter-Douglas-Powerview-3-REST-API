@@ -43,6 +43,24 @@ func NewRouter(cfg Config) *gin.Engine {
 		c.JSON(http.StatusOK, shades)
 	})
 
+	r.GET("/v1/shades/:bleName", func(c *gin.Context) {
+		bleName := c.Param("bleName")
+		shades, err := pvClient.GetHomeShades()
+		if err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to fetch shades from PowerView", "details": err.Error()})
+			return
+		}
+
+		for _, shade := range shades {
+			if shade.BLEName == bleName {
+				c.JSON(http.StatusOK, shade)
+				return
+			}
+		}
+
+		c.JSON(http.StatusNotFound, gin.H{"error": "shade not found", "bleName": bleName})
+	})
+
 	r.POST("/v1/position", func(c *gin.Context) {
 		var req positionRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
