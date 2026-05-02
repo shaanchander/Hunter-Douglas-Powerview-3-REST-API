@@ -128,3 +128,29 @@ func (c *Client) SendSetPosition(selectedShade string, hexPacket string) (int, e
 
 	return resp.StatusCode, nil
 }
+
+func (c *Client) GetGateway() ([]byte, error) {
+	endpoint := fmt.Sprintf("%s/gateway", c.host)
+
+	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status from PowerView /gateway: %s: %s", resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	return body, nil
+}

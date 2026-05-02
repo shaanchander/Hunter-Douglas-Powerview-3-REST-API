@@ -34,6 +34,16 @@ func NewRouter(cfg Config) *gin.Engine {
 	r := gin.Default()
 	pvClient := powerview.NewClient(cfg.PowerViewHost)
 
+	r.GET("/v1/gateway", func(c *gin.Context) {
+		body, err := pvClient.GetGateway()
+		if err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to fetch gateway from PowerView", "details": err.Error()})
+			return
+		}
+
+		c.Data(http.StatusOK, "application/json", body)
+	})
+
 	r.GET("/v1/shades", func(c *gin.Context) {
 		shades, err := pvClient.GetHomeShades()
 		if err != nil {
