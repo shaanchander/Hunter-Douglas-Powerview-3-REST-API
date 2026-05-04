@@ -26,7 +26,6 @@ type Position struct {
 type Shade struct {
 	ID             int       `json:"id"`
 	Type           int       `json:"type"`
-	Name           string    `json:"name"`
 	PTName         string    `json:"ptName"`
 	BLEName        string    `json:"bleName"`
 	SerialNumber   string    `json:"serialNumber"`
@@ -36,6 +35,40 @@ type Shade struct {
 	PowerType      int       `json:"powerType"`
 	Capabilities   int       `json:"capabilities"`
 	Positions      *Position `json:"positions,omitempty"`
+	Firmware       *Firmware `json:"firmware,omitempty"`
+}
+
+type Firmware struct {
+	Revision    int `json:"revision"`
+	SubRevision int `json:"subRevision"`
+	Build       int `json:"build"`
+}
+
+type Room struct {
+	ID          int          `json:"id"`
+	PTName      string       `json:"ptName"`
+	Color       string       `json:"color"`
+	Icon        string       `json:"icon"`
+	Type        int          `json:"type"`
+	ShadeGroups []ShadeGroup `json:"shadeGroups"`
+}
+
+type RoomDetail struct {
+	ID          int          `json:"id"`
+	Name        string       `json:"name"`
+	PTName      string       `json:"ptName"`
+	Color       string       `json:"color"`
+	Icon        string       `json:"icon"`
+	Type        int          `json:"type"`
+	ShadeGroups []ShadeGroup `json:"shadeGroups"`
+	Shades      []Shade      `json:"shades"`
+}
+
+type ShadeGroup struct {
+	ID       int    `json:"id"`
+	PTName   string `json:"ptName"`
+	Order    int    `json:"order"`
+	ShadeIds []int  `json:"shadeIds"`
 }
 
 type execPayload struct {
@@ -153,4 +186,66 @@ func (c *Client) GetGateway() ([]byte, error) {
 	}
 
 	return body, nil
+}
+
+func (c *Client) GetRooms() ([]Room, error) {
+	endpoint := fmt.Sprintf("%s/home/rooms", c.host)
+
+	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("unexpected status from PowerView /home/rooms: %s: %s", resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	var rooms []Room
+	if err := json.NewDecoder(resp.Body).Decode(&rooms); err != nil {
+		return nil, err
+	}
+
+	return rooms, nil
+}
+
+func (c *Client) GetRoomByID(id int) (*RoomDetail, error) {
+	endpoint := fmt.Sprintf("%s/home/rooms/%d", c.host, id)
+
+	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("room %d not found", id)
+	}
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("unexpected status from PowerView /home/rooms/%d: %s: %s", id, resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	var roomDetail RoomDetail
+	if err := json.NewDecoder(resp.Body).Decode(&roomDetail); err != nil {
+		return nil, err
+	}
+
+	// Strip firmware from shades as requested
+	for i := range roomDetail.Shades {
+		roomDetail.Shades[i].Firmware = nil
+	}
+
+	return &roomDetail, nil
 }

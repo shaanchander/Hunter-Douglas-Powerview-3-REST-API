@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -76,6 +77,37 @@ func NewRouter(cfg Config) *gin.Engine {
 		}
 
 		c.JSON(http.StatusNotFound, gin.H{"error": "shade not found", "id": id})
+	})
+
+	r.GET("/v1/rooms", func(c *gin.Context) {
+		rooms, err := pvClient.GetRooms()
+		if err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to fetch rooms from PowerView", "details": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, rooms)
+	})
+
+	r.GET("/v1/rooms/:id", func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "id must be a valid integer"})
+			return
+		}
+
+		room, err := pvClient.GetRoomByID(id)
+		if err != nil {
+			if strings.Contains(err.Error(), "not found") {
+				c.JSON(http.StatusNotFound, gin.H{"error": "room not found", "id": id})
+				return
+			}
+			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to fetch room from PowerView", "details": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, room)
 	})
 
 	r.POST("/v1/position", func(c *gin.Context) {
