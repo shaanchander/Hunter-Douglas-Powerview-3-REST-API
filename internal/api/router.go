@@ -80,6 +80,36 @@ func NewRouter(cfg Config) *gin.Engine {
 		c.JSON(http.StatusNotFound, gin.H{"error": "shade not found", "id": id})
 	})
 
+	r.GET("/v1/shades/:id/jog", func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "id must be a valid integer"})
+			return
+		}
+
+		shade, err := pvClient.GetShadeByID(id)
+		if err != nil {
+			if strings.Contains(err.Error(), "not found") {
+				c.JSON(http.StatusNotFound, gin.H{"error": "shade not found", "id": id})
+				return
+			}
+			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to fetch shade from PowerView", "details": err.Error()})
+			return
+		}
+
+		const jogHex = "F7110A0103"
+		statusCode, err := pvClient.SendSetPosition(shade.BLEName, jogHex)
+		if err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to send jog command to PowerView", "details": err.Error()})
+			return
+		}
+
+		log.Printf("JOG shade id=%d ble=%s hex=%s status=%d", id, shade.BLEName, jogHex, statusCode)
+
+		c.JSON(http.StatusOK, gin.H{"shadeId": id, "sentHex": jogHex, "upstreamStatusCode": statusCode})
+	})
+
 	r.GET("/v1/rooms", func(c *gin.Context) {
 		rooms, err := pvClient.GetRooms()
 		if err != nil {

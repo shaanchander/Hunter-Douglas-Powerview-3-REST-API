@@ -98,6 +98,30 @@ Gets a single shade by its integer ID.
 
 ---
 
+### GET /v1/shades/:id/jog
+
+Sends a jog command to a shade, causing it to briefly move (useful for identifying which physical shade corresponds to a given ID).
+
+**Path Parameters:**
+- `id` (int, required): The shade's numeric ID.
+
+**Response:**
+
+```json
+{
+  "shadeId": 1,
+  "sentHex": "F7110A0103",
+  "upstreamStatusCode": 200
+}
+```
+
+**Errors:**
+- `400 Bad Request` if `id` is not a valid integer.
+- `404 Not Found` if no shade matches the given ID.
+- `502 Bad Gateway` if the PowerView hub is unreachable.
+
+---
+
 ### GET /v1/rooms
 
 Lists all rooms registered in the PowerView home.
@@ -324,4 +348,4 @@ Sets the position of a shade/blind. Uses `id` to identify the shade, with `shade
 - Make container to host API
 - Improve error handling
 - Improve response from API
-- add ability to jog/identify shade
+- add ability to jog/identify shade (done — see `GET /v1/shades/:id/jog`)
