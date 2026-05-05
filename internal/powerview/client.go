@@ -261,6 +261,35 @@ func (c *Client) GetRoomByID(id int) (*RoomDetail, error) {
 	return &roomDetail, nil
 }
 
+func (c *Client) GetSceneByIDRaw(id int) ([]byte, error) {
+	endpoint := fmt.Sprintf("%s/home/scenes/%d", c.host, id)
+
+	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("scene %d not found", id)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status from PowerView /home/scenes/%d: %s: %s", id, resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	return body, nil
+}
+
 func (c *Client) GetSceneByID(id int) (*Scene, error) {
 	endpoint := fmt.Sprintf("%s/home/scenes/%d", c.host, id)
 
