@@ -71,6 +71,17 @@ type ShadeGroup struct {
 	ShadeIds []int  `json:"shadeIds"`
 }
 
+type Scene struct {
+	ID            int    `json:"id"`
+	Name          string `json:"name"`
+	PTName        string `json:"ptName,omitempty"`
+	NetworkNumber int    `json:"networkNumber"`
+	Color         string `json:"color"`
+	Icon          string `json:"icon"`
+	RoomIDs       []int  `json:"roomIds"`
+	ShadeIDs      []int  `json:"shadeIds"`
+}
+
 type execPayload struct {
 	Hex string `json:"hex"`
 }
@@ -248,6 +259,55 @@ func (c *Client) GetRoomByID(id int) (*RoomDetail, error) {
 	}
 
 	return &roomDetail, nil
+}
+
+func (c *Client) GetScenes() ([]Scene, error) {
+	endpoint := fmt.Sprintf("%s/home/scenes", c.host)
+
+	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("unexpected status from PowerView /home/scenes: %s: %s", resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	var rawScenes []struct {
+		ID            int    `json:"id"`
+		Name          string `json:"name"`
+		PTName        string `json:"ptName"`
+		NetworkNumber int    `json:"networkNumber"`
+		Color         string `json:"color"`
+		Icon          string `json:"icon"`
+		RoomIDs       []int  `json:"roomIds"`
+		ShadeIDs      []int  `json:"shadeIds"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&rawScenes); err != nil {
+		return nil, err
+	}
+
+	scenes := make([]Scene, 0, len(rawScenes))
+	for _, raw := range rawScenes {
+		scenes = append(scenes, Scene{
+			ID:            raw.ID,
+			Name:          raw.PTName,
+			NetworkNumber: raw.NetworkNumber,
+			Color:         raw.Color,
+			Icon:          raw.Icon,
+			RoomIDs:       raw.RoomIDs,
+			ShadeIDs:      raw.ShadeIDs,
+		})
+	}
+
+	return scenes, nil
 }
 
 func (c *Client) IsDiscoverReady() ([]byte, error) {

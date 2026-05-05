@@ -250,3 +250,4 @@ Sets the position of a shade/blind. Uses `id` to identify the shade, with `shade
 - Make container to host API
 - Improve error handling
 - Improve response from API
+- add ability to jog/identify shade

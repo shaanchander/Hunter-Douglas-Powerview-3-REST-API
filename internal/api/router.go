@@ -111,6 +111,16 @@ func NewRouter(cfg Config) *gin.Engine {
 		c.JSON(http.StatusOK, room)
 	})
 
+	r.GET("/v1/scenes", func(c *gin.Context) {
+		scenes, err := pvClient.GetScenes()
+		if err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to fetch scenes from PowerView", "details": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, scenes)
+	})
+
 	r.GET("/v1/discover/ready", func(c *gin.Context) {
 		body, err := pvClient.IsDiscoverReady()
 		if err != nil {
