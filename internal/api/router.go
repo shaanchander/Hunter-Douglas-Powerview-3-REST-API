@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
@@ -110,7 +111,35 @@ func NewRouter(cfg Config) *gin.Engine {
 		c.JSON(http.StatusOK, room)
 	})
 
+	r.GET("/v1/discover/ready", func(c *gin.Context) {
+		body, err := pvClient.IsDiscoverReady()
+		if err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to check discover readiness from PowerView", "details": err.Error()})
+			return
+		}
+
+		c.Data(http.StatusOK, "application/json", body)
+	})
+
 	r.GET("/v1/discover", func(c *gin.Context) {
+		readyBody, err := pvClient.IsDiscoverReady()
+		if err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to check discover readiness from PowerView", "details": err.Error()})
+			return
+		}
+
+		var readyResp struct {
+			Ready bool `json:"ready"`
+		}
+		if err := json.Unmarshal(readyBody, &readyResp); err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to parse discover readiness response", "details": err.Error()})
+			return
+		}
+		if !readyResp.Ready {
+			c.JSON(http.StatusConflict, gin.H{"error": "gateway is not ready for discovery", "details": "a discovery scan is already in progress"})
+			return
+		}
+
 		body, err := pvClient.DiscoverShades()
 		if err != nil {
 			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to discover shades from PowerView", "details": err.Error()})

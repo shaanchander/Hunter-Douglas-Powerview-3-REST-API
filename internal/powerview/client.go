@@ -250,6 +250,32 @@ func (c *Client) GetRoomByID(id int) (*RoomDetail, error) {
 	return &roomDetail, nil
 }
 
+func (c *Client) IsDiscoverReady() ([]byte, error) {
+	endpoint := fmt.Sprintf("%s/gateway/shades/discover/ready", c.host)
+
+	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status from PowerView /gateway/shades/discover/ready: %s: %s", resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	return body, nil
+}
+
 func (c *Client) DiscoverShades() ([]byte, error) {
 	endpoint := fmt.Sprintf("%s/gateway/shades/discover/", c.host)
 

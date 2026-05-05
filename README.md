@@ -157,9 +157,31 @@ Gets a single room by its integer ID, including all shades in that room.
 
 ---
 
+### GET /v1/discover/ready
+
+Checks whether the PowerView hub is ready to start a BLE discovery scan. Proxies the raw response from the PowerView hub's `/gateway/shades/discover/ready` endpoint. Use this before calling `/v1/discover` to avoid conflicts with an in-progress scan.
+
+**Response:** Raw JSON from the PowerView hub:
+
+```json
+{
+  "ready": true,
+  "notReadyDevices": []
+}
+```
+
+- `ready` — `true` if the hub is available for discovery, `false` if a scan is already in progress.
+- `notReadyDevices` — array of device identifiers that are currently blocking discovery (empty when `ready` is `true`).
+
+**Error:** `502 Bad Gateway` if the PowerView hub is unreachable.
+
+---
+
 ### GET /v1/discover
 
 Triggers a BLE scan on the PowerView hub to discover nearby shades (including unregistered ones). Proxies the raw response from the PowerView hub's `/gateway/shades/discover/` endpoint. This endpoint may take several seconds to complete while the hub performs the BLE scan.
+
+Before starting the scan, this endpoint checks `/gateway/shades/discover/ready`. If the hub reports it is not ready (e.g., a scan is already in progress), it returns a `409 Conflict` instead of attempting the discovery.
 
 **Response:** Raw JSON from the PowerView hub:
 
@@ -177,7 +199,9 @@ Triggers a BLE scan on the PowerView hub to discover nearby shades (including un
 - `scan` — array of discovered BLE devices with their filtered RSSI signal strength.
 - `excluded` — (not exactly sure)
 
-**Error:** `502 Bad Gateway` if the PowerView hub is unreachable.
+**Errors:**
+- `409 Conflict` if the gateway is not ready for discovery (a scan is already in progress).
+- `502 Bad Gateway` if the PowerView hub is unreachable.
 
 ---
 
