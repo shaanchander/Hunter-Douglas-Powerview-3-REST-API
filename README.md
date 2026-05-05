@@ -157,6 +157,80 @@ Gets a single room by its integer ID, including all shades in that room.
 
 ---
 
+### GET /v1/scenes
+
+Lists all scenes registered in the PowerView home.
+
+**Response:** Array of scene objects:
+
+```json
+[
+  {
+    "id": 108,
+    "name": "Scene Name",
+    "networkNumber": 1,
+    "color": "#FF0000",
+    "icon": "sun",
+    "roomIds": [1, 2],
+    "shadeIds": [1, 2, 3]
+  }
+]
+```
+
+**Error:** `502 Bad Gateway` if the PowerView hub is unreachable.
+
+---
+
+### GET /v1/scenes/:id
+
+Gets a single scene by its integer ID. Returns the raw JSON response from the PowerView hub without processing.
+
+**Path Parameters:**
+- `id` (int, required): The scene's numeric ID.
+
+**Response:** Raw JSON from the PowerView hub:
+
+```json
+{
+  "id": 108,
+  "name": "Scene Name",
+  "networkNumber": 1,
+  "color": "#FF0000",
+  "icon": "sun",
+  "roomIds": [1, 2],
+  "shadeIds": [1, 2, 3]
+}
+```
+
+**Errors:**
+- `400 Bad Request` if `id` is not a valid integer.
+- `404 Not Found` if no scene matches the given ID.
+- `502 Bad Gateway` if the PowerView hub is unreachable.
+
+---
+
+### GET /v1/scenes/:id/trigger
+
+Triggers a scene on the PowerView hub.
+
+**Path Parameters:**
+- `id` (int, required): The scene's numeric ID.
+
+**Response:**
+
+```json
+{
+  "sceneId": 108,
+  "upstreamStatusCodes": [200, 200]
+}
+```
+
+**Errors:**
+- `400 Bad Request` if `id` is not a valid integer.
+- `502 Bad Gateway` if the PowerView hub is unreachable.
+
+---
+
 ### GET /v1/discover/ready
 
 Checks whether the PowerView hub is ready to start a BLE discovery scan. Proxies the raw response from the PowerView hub's `/gateway/shades/discover/ready` endpoint. Use this before calling `/v1/discover` to avoid conflicts with an in-progress scan.
