@@ -46,6 +46,16 @@ func NewRouter(cfg Config) *gin.Engine {
 		c.Data(http.StatusOK, "application/json", body)
 	})
 
+	r.GET("/v1/gateway/flash", func(c *gin.Context) {
+		body, err := pvClient.GatewayFlash()
+		if err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to flash gateway LED from PowerView", "details": err.Error()})
+			return
+		}
+
+		c.Data(http.StatusOK, "application/json", body)
+	})
+
 	r.GET("/v1/shades", func(c *gin.Context) {
 		shades, err := pvClient.GetHomeShades()
 		if err != nil {

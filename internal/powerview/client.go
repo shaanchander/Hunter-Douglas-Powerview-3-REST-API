@@ -199,6 +199,32 @@ func (c *Client) GetGateway() ([]byte, error) {
 	return body, nil
 }
 
+func (c *Client) GatewayFlash() ([]byte, error) {
+	endpoint := fmt.Sprintf("%s/gateway/led", c.host)
+
+	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status from PowerView /gateway/led: %s: %s", resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	return body, nil
+}
+
 func (c *Client) GetRooms() ([]Room, error) {
 	endpoint := fmt.Sprintf("%s/home/rooms", c.host)
 

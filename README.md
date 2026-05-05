@@ -48,6 +48,16 @@ Proxies the PowerView hub's `/gateway` endpoint. Returns raw gateway status (JSO
 
 ---
 
+### GET /v1/gateway/flash
+
+Flashes the PowerView hub's LED. Proxies the PowerView hub's `/gateway/led` endpoint.
+
+**Response:** Raw JSON from the PowerView hub.
+
+**Error:** `502 Bad Gateway` if the PowerView hub is unreachable.
+
+---
+
 ### GET /v1/shades
 
 Lists all shades registered in the PowerView home.
