@@ -261,6 +261,53 @@ func (c *Client) GetRoomByID(id int) (*RoomDetail, error) {
 	return &roomDetail, nil
 }
 
+func (c *Client) GetSceneByID(id int) (*Scene, error) {
+	endpoint := fmt.Sprintf("%s/home/scenes/%d", c.host, id)
+
+	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("scene %d not found", id)
+	}
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("unexpected status from PowerView /home/scenes/%d: %s: %s", id, resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	var rawScene struct {
+		ID            int    `json:"id"`
+		Name          string `json:"name"`
+		PTName        string `json:"ptName"`
+		NetworkNumber int    `json:"networkNumber"`
+		Color         string `json:"color"`
+		Icon          string `json:"icon"`
+		RoomIDs       []int  `json:"roomIds"`
+		ShadeIDs      []int  `json:"shadeIds"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&rawScene); err != nil {
+		return nil, err
+	}
+
+	return &Scene{
+		ID:            rawScene.ID,
+		Name:          rawScene.PTName,
+		NetworkNumber: rawScene.NetworkNumber,
+		Color:         rawScene.Color,
+		Icon:          rawScene.Icon,
+		RoomIDs:       rawScene.RoomIDs,
+		ShadeIDs:      rawScene.ShadeIDs,
+	}, nil
+}
+
 func (c *Client) GetScenes() ([]Scene, error) {
 	endpoint := fmt.Sprintf("%s/home/scenes", c.host)
 
@@ -362,4 +409,35 @@ func (c *Client) DiscoverShades() ([]byte, error) {
 	}
 
 	return body, nil
+}
+
+func (c *Client) TriggerScene(id int) ([]int, error) {
+	// Step 1: Fetch the scene to get shadeIds and networkNumber
+	scene, err := c.GetSceneByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get scene %d: %w", id, err)
+	}
+
+	// Step 2: Build the hex payload — F7BA0102 + networkNumber as little-endian hex (4 chars)
+	// e.g., networkNumber 36466 (0x8E92) -> little-endian "928E"
+	networkHex := fmt.Sprintf("%04X", scene.NetworkNumber&0xFFFF)
+	reversed := fmt.Sprintf("%s%s", networkHex[2:4], networkHex[0:2])
+	hexPayload := fmt.Sprintf("F7BA0102%s", reversed)
+
+	// Step 3: For each shade in the scene, fetch the BLE name and send the command
+	var statusCodes []int
+	for _, shadeID := range scene.ShadeIDs {
+		shade, err := c.GetShadeByID(shadeID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get shade %d for scene %d: %w", shadeID, id, err)
+		}
+
+		statusCode, err := c.SendSetPosition(shade.BLEName, hexPayload)
+		if err != nil {
+			return nil, fmt.Errorf("failed to send scene command to shade %s: %w", shade.BLEName, err)
+		}
+		statusCodes = append(statusCodes, statusCode)
+	}
+
+	return statusCodes, nil
 }

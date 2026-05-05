@@ -121,6 +121,23 @@ func NewRouter(cfg Config) *gin.Engine {
 		c.JSON(http.StatusOK, scenes)
 	})
 
+	r.GET("/v1/scenes/:id/trigger", func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "id must be a valid integer"})
+			return
+		}
+
+		statusCodes, err := pvClient.TriggerScene(id)
+		if err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to trigger scene on PowerView", "details": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"sceneId": id, "upstreamStatusCodes": statusCodes})
+	})
+
 	r.GET("/v1/discover/ready", func(c *gin.Context) {
 		body, err := pvClient.IsDiscoverReady()
 		if err != nil {
