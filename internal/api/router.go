@@ -110,6 +110,16 @@ func NewRouter(cfg Config) *gin.Engine {
 		c.JSON(http.StatusOK, room)
 	})
 
+	r.GET("/v1/discover", func(c *gin.Context) {
+		body, err := pvClient.DiscoverShades()
+		if err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to discover shades from PowerView", "details": err.Error()})
+			return
+		}
+
+		c.Data(http.StatusOK, "application/json", body)
+	})
+
 	r.POST("/v1/position", func(c *gin.Context) {
 		var req positionRequest
 		if err := c.ShouldBindJSON(&req); err != nil {

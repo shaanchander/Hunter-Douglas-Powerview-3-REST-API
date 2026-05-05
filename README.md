@@ -98,6 +98,89 @@ Gets a single shade by its integer ID.
 
 ---
 
+### GET /v1/rooms
+
+Lists all rooms registered in the PowerView home.
+
+**Response:** Array of room objects:
+
+```json
+[
+  {
+    "id": 1,
+    "ptName": "Living Room",
+    "color": "#FF0000",
+    "icon": "living-room",
+    "type": 1,
+    "shadeGroups": [
+      {
+        "id": 1,
+        "ptName": "Group 1",
+        "order": 0,
+        "shadeIds": [1, 2]
+      }
+    ]
+  }
+]
+```
+
+**Error:** `502 Bad Gateway` if the PowerView hub is unreachable.
+
+---
+
+### GET /v1/rooms/:id
+
+Gets a single room by its integer ID, including all shades in that room.
+
+**Path Parameters:**
+- `id` (int, required): The room's numeric ID.
+
+**Response:** Room detail object with nested shades (firmware info stripped):
+
+```json
+{
+  "id": 1,
+  "name": "Living Room",
+  "ptName": "Living Room",
+  "color": "#FF0000",
+  "icon": "living-room",
+  "type": 1,
+  "shadeGroups": [...],
+  "shades": [...]
+}
+```
+
+**Errors:**
+- `400 Bad Request` if `id` is not a valid integer.
+- `404 Not Found` if no room matches the given ID.
+- `502 Bad Gateway` if the PowerView hub is unreachable.
+
+---
+
+### GET /v1/discover
+
+Triggers a BLE scan on the PowerView hub to discover nearby shades (including unregistered ones). Proxies the raw response from the PowerView hub's `/gateway/shades/discover/` endpoint. This endpoint may take several seconds to complete while the hub performs the BLE scan.
+
+**Response:** Raw JSON from the PowerView hub:
+
+```json
+{
+  "scan": [
+    {"bleName": "DUE:1C77", "filteredRssi": -56},
+    {"bleName": "DUE:F354", "filteredRssi": -61},
+    {"bleName": "DUE:51DB", "filteredRssi": -64}
+  ],
+  "excluded": []
+}
+```
+
+- `scan` — array of discovered BLE devices with their filtered RSSI signal strength.
+- `excluded` — (not exactly sure)
+
+**Error:** `502 Bad Gateway` if the PowerView hub is unreachable.
+
+---
+
 ### POST /v1/position
 
 Sets the position of a shade/blind. Uses `id` to identify the shade, with `shadePct` and `blindPct` controlling the two layers.

@@ -249,3 +249,31 @@ func (c *Client) GetRoomByID(id int) (*RoomDetail, error) {
 
 	return &roomDetail, nil
 }
+
+func (c *Client) DiscoverShades() ([]byte, error) {
+	endpoint := fmt.Sprintf("%s/gateway/shades/discover/", c.host)
+
+	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// BLE scan takes longer, use a longer timeout for discovery
+	longHTTP := &http.Client{Timeout: 30 * time.Second}
+	resp, err := longHTTP.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status from PowerView /gateway/shades/discover/: %s: %s", resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	return body, nil
+}
