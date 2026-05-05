@@ -48,9 +48,9 @@ Proxies the PowerView hub's `/gateway` endpoint. Returns raw gateway status (JSO
 
 ---
 
-### GET /v1/gateway/flash
+### GET /v1/gateway/identify
 
-Flashes the PowerView hub's LED. Proxies the PowerView hub's `/gateway/led` endpoint.
+Identifies the PowerView hub by flashing its LED. Proxies the PowerView hub's `/gateway/led` endpoint.
 
 **Response:** Raw JSON from the PowerView hub.
 
@@ -108,7 +108,7 @@ Gets a single shade by its integer ID.
 
 ---
 
-### GET /v1/shades/:id/jog
+### GET /v1/shades/:id/identify
 
 Sends a jog command to a shade, causing it to briefly move (useful for identifying which physical shade corresponds to a given ID).
 
@@ -358,4 +358,4 @@ Sets the position of a shade/blind. Uses `id` to identify the shade, with `shade
 - Make container to host API
 - Improve error handling
 - Improve response from API
-- add ability to jog/identify shade (done — see `GET /v1/shades/:id/jog`)
+- add ability to jog/identify shade (done — see `GET /v1/shades/:id/identify`)

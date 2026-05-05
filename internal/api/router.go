@@ -46,10 +46,10 @@ func NewRouter(cfg Config) *gin.Engine {
 		c.Data(http.StatusOK, "application/json", body)
 	})
 
-	r.GET("/v1/gateway/flash", func(c *gin.Context) {
+	r.GET("/v1/gateway/identify", func(c *gin.Context) {
 		body, err := pvClient.GatewayFlash()
 		if err != nil {
-			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to flash gateway LED from PowerView", "details": err.Error()})
+			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to identify gateway from PowerView", "details": err.Error()})
 			return
 		}
 
@@ -90,7 +90,7 @@ func NewRouter(cfg Config) *gin.Engine {
 		c.JSON(http.StatusNotFound, gin.H{"error": "shade not found", "id": id})
 	})
 
-	r.GET("/v1/shades/:id/jog", func(c *gin.Context) {
+	r.GET("/v1/shades/:id/identify", func(c *gin.Context) {
 		idStr := c.Param("id")
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
