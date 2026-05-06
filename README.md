@@ -313,15 +313,17 @@ Before starting the scan, this endpoint checks `/gateway/shades/discover/ready`.
 
 ---
 
-### POST /v1/position
+### POST /v1/shades/:id/position
 
-Sets the position of a shade/blind. Uses `id` to identify the shade, with `shadePct` and `blindPct` controlling the two layers.
+Sets the position of a shade/blind. The shade is identified by its ID in the URL path, with `shadePct` and `blindPct` controlling the two layers.
+
+**Path Parameters:**
+- `id` (int, required): The shade's numeric ID (from `/v1/shades`).
 
 **Request Body:**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `id` | int | Yes | Shade ID (from `/v1/shades`). |
 | `blindPct` | int | Yes | Blind (blackout layer) coverage percent in `[0..100]`. |
 | `shadePct` | int | Conditional | Shade (privacy layer) coverage percent in `[0..100]`. Required for shade type `9`; must be omitted for type `6`. |
 | `velocity` | int | No | Motor speed in `[10..255]`. Omit for default speed. |
@@ -334,6 +336,7 @@ Sets the position of a shade/blind. Uses `id` to identify the shade, with `shade
 
 ```json
 {
+  "shadeId": 1,
   "sentHex": "F7010109...",
   "shadePct": 40,
   "blindPct": 30,
@@ -344,8 +347,32 @@ Sets the position of a shade/blind. Uses `id` to identify the shade, with `shade
 - `shadePct` returns `-1` sentinel for type `6` (blind-only) shades.
 
 **Errors:**
-- `400 Bad Request` for invalid body, missing fields, out-of-range values, or unsupported shade type.
+- `400 Bad Request` if `id` is not a valid integer, for invalid body, missing fields, out-of-range values, or unsupported shade type.
+- `404 Not Found` if no shade matches the given ID.
 - `502 Bad Gateway` if the PowerView hub is unreachable.
+
+**Examples:**
+
+Blind-only shade (type 6):
+```bash
+curl -X POST http://localhost:8080/v1/shades/1/position \
+  -H "Content-Type: application/json" \
+  -d '{"blindPct": 50}'
+```
+
+Shade+blind (type 9):
+```bash
+curl -X POST http://localhost:8080/v1/shades/1/position \
+  -H "Content-Type: application/json" \
+  -d '{"shadePct": 30, "blindPct": 50}'
+```
+
+With custom velocity:
+```bash
+curl -X POST http://localhost:8080/v1/shades/1/position \
+  -H "Content-Type: application/json" \
+  -d '{"shadePct": 30, "blindPct": 50, "velocity": 128}'
+```
 
 ---
 
@@ -354,3 +381,5 @@ Sets the position of a shade/blind. Uses `id` to identify the shade, with `shade
 - Implement caching for shade types
 - Improve error handling
 - Improve response from API
+- Automations (add, remove, edit, enable/disable)
+- Scenes (add, remove, edit)

@@ -19,17 +19,9 @@ type Config struct {
 }
 
 type positionRequest struct {
-	ID       int  `json:"id"`
 	ShadePct *int `json:"shadePct,omitempty"`
 	BlindPct *int `json:"blindPct"`
 	Velocity *int `json:"velocity,omitempty"`
-}
-
-type positionResponse struct {
-	SentHex            string `json:"sentHex"`
-	ShadePct           int    `json:"shadePct"`
-	BlindPct           int    `json:"blindPct"`
-	UpstreamStatusCode int    `json:"upstreamStatusCode"`
 }
 
 func NewRouter(cfg Config) *gin.Engine {
@@ -237,23 +229,26 @@ func NewRouter(cfg Config) *gin.Engine {
 		c.Data(http.StatusOK, "application/json", body)
 	})
 
-	r.POST("/v1/position", func(c *gin.Context) {
+	r.POST("/v1/shades/:id/position", func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "id must be a valid integer"})
+			return
+		}
+
 		var req positionRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 			return
 		}
 
-		if req.ID == 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
-			return
-		}
 		if req.BlindPct == nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "blindPct is required"})
 			return
 		}
 
-		shade, err := pvClient.GetShadeByID(req.ID)
+		shade, err := pvClient.GetShadeByID(id)
 		if err != nil {
 			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to fetch shade from PowerView", "details": err.Error()})
 			return
@@ -325,7 +320,7 @@ func NewRouter(cfg Config) *gin.Engine {
 		}
 		hexPacket := protocol.PacketHexUpper(packet)
 
-		log.Printf("SET_POSITION hex: %s (shade=%d blindOpen=%d gap=%d velocity=%d type=%d)", hexPacket, normalizedShadePct, blindOpenPct, normalizedGapPct, velocity, shade.Type)
+		log.Printf("SET_POSITION shade id=%d hex: %s (shade=%d blindOpen=%d gap=%d velocity=%d type=%d)", id, hexPacket, normalizedShadePct, blindOpenPct, normalizedGapPct, velocity, shade.Type)
 
 		statusCode, err := pvClient.SendSetPosition(shade.BLEName, hexPacket)
 		if err != nil {
@@ -333,11 +328,12 @@ func NewRouter(cfg Config) *gin.Engine {
 			return
 		}
 
-		c.JSON(http.StatusOK, positionResponse{
-			SentHex:            hexPacket,
-			ShadePct:           responseShadePct,
-			BlindPct:           blindOpenPct,
-			UpstreamStatusCode: statusCode,
+		c.JSON(http.StatusOK, gin.H{
+			"shadeId":            id,
+			"sentHex":            hexPacket,
+			"shadePct":           responseShadePct,
+			"blindPct":           blindOpenPct,
+			"upstreamStatusCode": statusCode,
 		})
 	})
 
