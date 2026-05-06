@@ -351,11 +351,6 @@ Sets the position of a shade/blind. Uses `id` to identify the shade, with `shade
 
 ## TODO
 
-- Account for slight percentage difference (doesn't add to 100 due to compacted blind taking up space)
-- Handle blinds with no shades
 - Implement caching for shade types
-- Query shades by int ID
-- Make container to host API
 - Improve error handling
 - Improve response from API
-- add ability to jog/identify shade (done — see `GET /v1/shades/:id/identify`)
